@@ -1,0 +1,28 @@
+<div class="m-4 p-5 bg-gray-100 rounded-lg shadow-lg">
+
+    <div class="flex mb-2">
+        <h1 class="text-2xl font-bold mb-2 inline">Transaction ID:</h1>
+        <h1 class="text-2xl font-bold ml-2 inline">{{.UniqueId}}</h1>
+    </div>
+
+    <div class="flex mb-2">
+        <h2 class="text-lg font-bold mb-2 inline">Date:</h2>
+        <h2 class="text-lg ml-2 inline">{{.Date}}</h2>
+    </div>
+
+     <div class="flex mb-2">
+        <h2 class="text-lg font-bold mb-2 inline">Description:</h2>
+        <h2 class="text-lg ml-2 inline">{{.Description}}</h2>
+    </div>
+
+    <div class="flex mb-2">
+        <h2 class="text-lg font-bold mb-2 inline">Debit:</h2>
+        <h2 class="text-lg ml-2 inline text-red-400">${{.Debit}}</h2>
+    </div>
+     
+    <div class="flex mb-2">
+        <h2 class="text-lg font-bold mb-2 inline">Credit:</h2>
+        <h2 class="text-lg ml-2 inline text-green-400">${{.Credit}}</h2>
+    </div>
+ 
+</div>

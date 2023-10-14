@@ -19,3 +19,11 @@
 
 # Go workspace file
 go.work
+
+# Database:
+*.sqlite
+
+# Raw data:
+/data
+
+/node_modules
