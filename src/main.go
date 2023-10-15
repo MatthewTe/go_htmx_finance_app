@@ -407,6 +407,39 @@ func displayUploadedCSVTable(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func debugActionsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+
+		dbPath := "./finance_database.sqlite"
+
+		r.ParseForm()
+
+		switch selectedValue := r.FormValue("debug_action_dropdown"); selectedValue {
+		case "rebuildDatabase":
+			db, err := RebuildDatabase(dbPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+
+		case "loadTestTransactions":
+			db, err := sql.Open("sqlite3", dbPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			_, err = LoadTestData("../data/test_transactions.csv", db)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+		}
+
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+
+	}
+}
+
 func displayTransactionContainer(w http.ResponseWriter, r *http.Request) {
 
 	params := r.URL.Query()
@@ -485,6 +518,7 @@ func main() {
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/upload", handleUpload)
 	http.HandleFunc("/upload_history", uploadHistoryHandler)
+	http.HandleFunc("/debug_actions", debugActionsHandler)
 
 	// HTMX functions:
 	http.HandleFunc("/get_transactions", displayTransactionContainer)

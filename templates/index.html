@@ -108,7 +108,16 @@
                 <a href="/upload" class="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">Upload</a>
               </li>
               <li>
-                <a href="/history" class="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">History</a>
+                <form action="/debug_actions" method="post" class="flex items-center">
+                    <div class="w-64 mr-4">
+                        <select name="debug_action_dropdown" class="block w-full py-2 px-3 border border-gray-300 bg-white text-gray-800 rounded-md shadow-sm focus:ring focus:ring-indigo-300 focus:ring-opacity-50">
+                        <option value="">Select an option</option>
+                        <option value="rebuildDatabase">Rebuild Database</option>
+                        <option value="loadTestTransactions">Load Test Transactions</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 transition duration-200">Submit</button>
+                </form>
               </li>
             </ul>
           </div>
@@ -118,7 +127,7 @@
     <div class="m-5">
         <canvas id="mainTransactionTimeseries"></canvas>
     </div>
-    
+
     <div class="m-4 p-5 bg-gray-100 rounded-lg shadow-lg">
         <div class="flex mb-2">
             <h2 class="text-2xl font-bold mb-2 inline">Total Income:</h2>
