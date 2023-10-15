@@ -23,7 +23,24 @@ type RequestData struct {
 func mainHandler(w http.ResponseWriter, r *http.Request) {
 
 	dbPath := "./finance_database.sqlite"
-	//db, err := RebuildDatabase(dbPath)
+
+	/*
+
+		db, err := RebuildDatabase(dbPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+			_, err = LoadTestData("../data/test_transactions.csv", db)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			db, err := sql.Open("sqlite3", dbPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+	*/
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Fatal(err)
@@ -32,6 +49,28 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	transactions, err := ReadAllTransactions(db)
 	if err != nil {
 		log.Fatal("Unable to extract all transactions from the database")
+	}
+
+	if len(transactions) == 0 {
+		tmpl, err := template.ParseFiles("../templates/index.html")
+		if err != nil {
+			log.Fatal("Unable to load the index.html template: ", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = tmpl.Execute(w, nil)
+		if err != nil {
+
+			if strings.Contains(err.Error(), "broken pipe") {
+				log.Println("Client closed the connection prematurely")
+				return
+			}
+
+			log.Fatal("Unable to render the index.html template: ", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Resampling Transactions for daily timeseries:
@@ -151,7 +190,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		file, _, err := r.FormFile("csvFile")
+		file, header, err := r.FormFile("csvFile")
 		if err != nil {
 			log.Fatal("Error in Uploading the CSV File", err)
 			return
@@ -211,9 +250,70 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Fatal("Unable to execute full insert query for test data:", err)
 		}
-		fmt.Println("Inserted all test data into db.")
+
+		// Inserting tracking record for the uploaded csv:
+		tx, err = db.Begin()
+		if err != nil {
+			log.Fatal("Error in connecting to a database:", err)
+		}
+		stmt, err = tx.Prepare(`INSERT INTO uploaded_files(
+			filename,
+			date_uploaded,
+			num_rows,
+			file_size
+			) values(?, ?, ?, ?)`)
+		if err != nil {
+			log.Fatal("Error in constructing tracking insert query", err)
+		}
+		defer stmt.Close()
+
+		today := time.Now()
+		uploadedTime := today.Format("2006-01-02 15:04:05")
+		_, err = stmt.Exec(header.Filename, uploadedTime, len(records), header.Size)
+		if err != nil {
+			log.Fatal("Unable to execute the insert query for the tracking record", err)
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			log.Fatal("Unable to execute full insert query for transaction data:", err)
+		}
+
+		fmt.Println("Sucessfully Inserted all data into db.")
 
 		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
+}
+
+func uploadHistoryHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+
+		dbPath := "./finance_database.sqlite"
+		db, err := sql.Open("sqlite3", dbPath)
+		if err != nil {
+			log.Fatal(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		transactionHistory, err := ReadTransactionHistory(db)
+		fmt.Println(transactionHistory)
+		if err != nil {
+			log.Fatal("Error in querying all of the transactions from the database")
+		}
+
+		tmpl, err := template.ParseFiles("../templates/upload_history.html")
+		if err != nil {
+			log.Fatal("Unable to render the upload history template", err)
+		}
+
+		err = tmpl.Execute(w, transactionHistory)
+		if err != nil {
+			log.Fatal("Unable to render the template snippit transaction history: ", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 	}
 }
 
@@ -384,6 +484,7 @@ func main() {
 
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/upload", handleUpload)
+	http.HandleFunc("/upload_history", uploadHistoryHandler)
 
 	// HTMX functions:
 	http.HandleFunc("/get_transactions", displayTransactionContainer)

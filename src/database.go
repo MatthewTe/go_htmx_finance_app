@@ -49,6 +49,21 @@ func RebuildDatabase(dbPath string) (*sql.DB, error) {
 		return db, err
 	}
 
+	createUploadTrackingSchema := `
+	CREATE TABLE IF NOT EXISTS uploaded_files (
+		unique_id INTEGER PRIMARY KEY AUTOINCREMENT, 
+		filename TEXT, 
+		date_uploaded TEXT NOT NULL,
+		num_rows INTEGER, 
+		file_size REAL
+	);`
+
+	_, err = db.Exec(createUploadTrackingSchema)
+	if err != nil {
+		log.Fatal("Unable to create the schema for uploaded file tracking")
+		return db, err
+	}
+
 	return db, nil
 
 }
@@ -239,6 +254,46 @@ func ReadAllTransactions(db *sql.DB) (transactions []Transaction, err error) {
 
 	return transactions, nil
 
+}
+
+type TransactionHistory struct {
+	UniqueId     string
+	FileName     string
+	DateUploaded string
+	NumRows      int
+	FileSize     float64
+}
+
+func ReadTransactionHistory(db *sql.DB) (transactionHistory []TransactionHistory, err error) {
+	rows, err := db.Query("SELECT * FROM uploaded_files")
+	if err != nil {
+		log.Fatal("Unable to query the newly inserted rows into the transaction table:", err)
+	}
+	defer rows.Close()
+
+	history := []TransactionHistory{}
+
+	for rows.Next() {
+		var uniqueId, fileName, dateUploaded string
+		var numRows int
+		var fileSize float64
+
+		err := rows.Scan(&uniqueId, &fileName, &dateUploaded, &numRows, &fileSize)
+		if err != nil {
+			log.Fatal("Unable to query the transaction history:", err)
+			return nil, err
+		}
+
+		history = append(history, TransactionHistory{
+			UniqueId:     uniqueId,
+			FileName:     fileName,
+			DateUploaded: dateUploaded,
+			NumRows:      numRows,
+			FileSize:     fileSize,
+		})
+	}
+
+	return history, err
 }
 
 // Database Transaction Resampling:
